@@ -1,0 +1,39 @@
+import 'dart:async';
+
+import 'package:bloc/bloc.dart';
+import 'package:connectivity/connectivity.dart';
+import 'package:flutter/cupertino.dart';
+
+part 'internet_cubit_state.dart';
+
+class InternetCubit extends Cubit<InternetState> {
+  final Connectivity connectivity;
+  StreamSubscription connectivityStreamSubscription;
+  InternetCubit({@required this.connectivity}) : super(InternetLoading()) {
+    monitorInternetConnection();
+  }
+
+  StreamSubscription<ConnectivityResult> monitorInternetConnection() {
+    return connectivityStreamSubscription =
+        connectivity.onConnectivityChanged.listen((connectivityResult) {
+      if (connectivityResult == ConnectivityResult.wifi) {
+        emitInternetConnected(ConnectionType.Wifi);
+      } else if (connectivityResult == ConnectivityResult.mobile) {
+        emitInternetConnected(ConnectionType.MobileData);
+      } else if (connectivityResult == ConnectivityResult.none) {
+        emitInternetDisconnected();
+      }
+    });
+  }
+
+  void emitInternetConnected(ConnectionType _connectionType) =>
+      emit(InternetConnected(connectionType: _connectionType));
+
+  void emitInternetDisconnected() => emit(InternetDisconnected());
+
+  @override
+  Future<void> close() {
+    connectivityStreamSubscription.cancel();
+    return super.close();
+  }
+}
